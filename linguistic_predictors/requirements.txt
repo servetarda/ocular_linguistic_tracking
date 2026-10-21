@@ -1,0 +1,15 @@
+# Python 3.10+ (developed with 3.11 in the `nlp_env` conda environment)
+numpy
+pandas
+torch>=2.1           # GPT-2 inference (Apple GPU via --device mps)
+transformers>=4.28
+spacy>=3.7           # then: python -m spacy download de_core_news_lg
+fasttext             # cc.de.300.bin word vectors (optional; spaCy vectors otherwise)
+openpyxl             # reads the SUBTLEX-DE .xlsx once (a .tsv cache is written)
+wordfreq             # fallback frequencies when SUBTLEX-DE is absent
+
+# Montreal Forced Aligner, in its own conda environment (pronunciations,
+# G2P and forced alignment); the pipeline finds it automatically:
+#   conda create -n mfa -c conda-forge montreal-forced-aligner
+#   mfa model download dictionary german_mfa
+#   mfa model download g2p german_mfa

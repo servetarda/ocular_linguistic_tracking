@@ -1,0 +1,421 @@
+<title>German Surprisal Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+  :root {
+    --ground: #F5F6F8;
+    --surface: #FFFFFF;
+    --ink: #172030;
+    --muted: #586274;
+    --rule: #D6DBE3;
+    --accent: #2B5C86;
+    --accent-soft: #E4ECF4;
+    --flag: #9A3B2E;
+    --flag-soft: #F6E9E6;
+    --code-bg: #ECEFF3;
+    --serif: "Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif;
+    --sans: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --ipa: "Gentium Book Plus", "Charis SIL", "Doulos SIL", "Noto Serif", "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #12161D; --surface: #181D26; --ink: #E3E8EF; --muted: #99A3B2; --rule: #2B3342;
+      --accent: #86B4DC; --accent-soft: #1D2A38; --flag: #E0927F; --flag-soft: #2E1F1C; --code-bg: #1F2530;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #12161D; --surface: #181D26; --ink: #E3E8EF; --muted: #99A3B2; --rule: #2B3342;
+    --accent: #86B4DC; --accent-soft: #1D2A38; --flag: #E0927F; --flag-soft: #2E1F1C; --code-bg: #1F2530;
+  }
+
+  body { background: var(--ground); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  .page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; }
+  @media (min-width: 960px) { .page { grid-template-columns: 220px minmax(0, 1fr); gap: 56px; } }
+
+  /* contents rail */
+  .toc { font-family: var(--sans); font-size: 14px; }
+  .toc-inner { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); }
+  .toc h2 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .toc a { color: var(--ink); text-decoration: none; display: grid; grid-template-columns: 22px 1fr; }
+  .toc a span { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .toc a:hover, .toc a:focus-visible { color: var(--accent); }
+  @media (max-width: 959px) { .toc-inner { position: static; border-block: 1px solid var(--rule); padding-block: 14px; } .toc ol { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); } }
+
+  main { max-width: 72ch; min-width: 0; }
+  header.doc { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 28px; }
+  .eyebrow { font-family: var(--sans); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin: 0 0 8px; }
+  h1 { font-family: var(--sans); font-weight: 600; font-size: clamp(30px, 5vw, 42px); line-height: 1.1; margin: 0 0 12px; text-wrap: balance; letter-spacing: -.01em; }
+  .meta { font-family: var(--sans); color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; }
+  h2 { font-family: var(--sans); font-weight: 600; font-size: 24px; line-height: 1.25; margin: 56px 0 14px; text-wrap: balance; scroll-margin-top: 24px; display: flex; gap: 12px; align-items: baseline; }
+  h2 .n { color: var(--accent); font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--sans); font-weight: 600; font-size: 18px; margin: 32px 0 8px; text-wrap: balance; scroll-margin-top: 24px; }
+  p, li { hyphens: auto; }
+  p { margin: 0 0 14px; }
+  ul, ol.plain { margin: 0 0 16px; padding-left: 1.3em; }
+  li { margin-bottom: 6px; }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code, .mono { font-family: var(--mono); font-size: .84em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  .ipa { font-family: var(--ipa); font-size: 1.05em; }
+  .unit { font-family: var(--sans); font-size: .9em; color: var(--muted); }
+
+  .abstract { background: var(--surface); border: 1px solid var(--rule); padding: 20px 22px; margin-bottom: 8px; }
+  .abstract p:last-child { margin-bottom: 0; }
+  .keyrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 20px 0 8px; }
+  .keyrow div { background: var(--surface); padding: 14px 16px; }
+  .keyrow b { display: block; font-family: var(--sans); font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .keyrow span { font-family: var(--sans); font-size: 13px; color: var(--muted); line-height: 1.35; display: block; margin-top: 4px; }
+
+  .eq { font-family: var(--serif); background: var(--surface); border-left: 3px solid var(--accent); padding: 12px 16px; margin: 12px 0 16px; overflow-x: auto; white-space: nowrap; }
+  .eq var { font-style: italic; }
+  .eq .lbl { font-family: var(--sans); font-size: 12px; color: var(--muted); float: right; margin-left: 16px; }
+
+  .table-wrap { overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; line-height: 1.45; }
+  th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+  th { font-family: var(--sans); font-weight: 600; font-size: 13px; letter-spacing: .03em; color: var(--muted); background: var(--ground); white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.best td { background: var(--accent-soft); }
+  tr.old td { color: var(--muted); }
+  .tag { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .03em; padding: 1px 6px; border-radius: 3px; white-space: nowrap; }
+  .tag.was { color: var(--flag); background: var(--flag-soft); }
+  .tag.now { color: var(--accent); background: var(--accent-soft); }
+  .caption { font-family: var(--sans); font-size: 13.5px; color: var(--muted); margin: -10px 0 20px; line-height: 1.45; }
+
+  figure { margin: 18px 0 24px; }
+  .chart-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); padding: 8px; }
+  svg.chart { display: block; width: 100%; min-width: 520px; height: auto; font-family: var(--sans); }
+  .chart .grid { stroke: var(--rule); stroke-width: 1; }
+  .chart .axis { stroke: var(--muted); stroke-width: 1; }
+  .chart .tick { fill: var(--muted); font-size: 12px; }
+  .chart .axlab { fill: var(--ink); font-size: 13px; font-weight: 600; }
+  .chart .pt { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+  .chart .pt.old { fill: var(--flag); }
+  .chart .pt.best { fill: var(--accent); stroke: var(--ink); stroke-width: 2; }
+  .chart .lab { fill: var(--ink); font-size: 12.5px; }
+  .chart .lab.sub { fill: var(--muted); font-size: 11.5px; }
+  .chart .arrow { stroke: var(--muted); stroke-width: 1.5; fill: none; stroke-dasharray: 4 3; }
+  .chart .arrowhead { fill: var(--muted); }
+  figcaption { font-family: var(--sans); font-size: 13.5px; color: var(--muted); margin-top: 8px; line-height: 1.45; }
+
+  .note { border-left: 3px solid var(--flag); background: var(--flag-soft); padding: 12px 16px; margin: 14px 0 18px; }
+  .note p:last-child { margin-bottom: 0; }
+  dl.cols { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 10px 0 18px; font-size: 15.5px; }
+  dl.cols dt { font-family: var(--mono); font-size: 13.5px; }
+  dl.cols dd { margin: 0; }
+  @media (max-width: 560px) { dl.cols { grid-template-columns: 1fr; } dl.cols dd { margin-bottom: 8px; } }
+  pre { font-family: var(--mono); font-size: 13px; line-height: 1.5; background: var(--code-bg); padding: 12px 14px; overflow-x: auto; margin: 10px 0 18px; }
+  ol.refs { padding-left: 1.2em; font-size: 15px; }
+  ol.refs li { margin-bottom: 8px; }
+  footer { margin-top: 56px; padding-top: 14px; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--muted); }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  html { scroll-behavior: smooth; }
+</style>
+
+<div class="page">
+  <nav class="toc" aria-label="Contents">
+    <div class="toc-inner">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#summary"><span>1</span>Summary</a></li>
+        <li><a href="#pipeline"><span>2</span>Pipeline and data</a></li>
+        <li><a href="#methods"><span>3</span>Predictor methods</a></li>
+        <li><a href="#audit"><span>4</span>Errors found</a></li>
+        <li><a href="#validation"><span>5</span>Validation</a></li>
+        <li><a href="#limits"><span>6</span>Limitations</a></li>
+        <li><a href="#repro"><span>7</span>Reproducibility</a></li>
+        <li><a href="#refs"><span>8</span>References</a></li>
+      </ol>
+    </div>
+  </nav>
+
+  <main>
+    <header class="doc">
+      <p class="eyebrow">Methods report</p>
+      <h1>German Surprisal Pipeline</h1>
+      <p class="meta"><span>Audit, correction and validation of <code>linguistic_predictors</code></span><span>23–24 September 2026</span><span>Units: bits (log₂)</span></p>
+    </header>
+
+    <section id="summary" aria-labelledby="h-summary">
+      <h2 id="h-summary"><span class="n">1</span>Summary</h2>
+      <div class="abstract">
+        <p>The pipeline computes word-by-word predictability of a German spoken story at five levels: lexical, part-of-speech, semantic, phonemic and syllabic. It follows Heilbron et al. (2022), with the syllabic level as an extension. I audited the original implementation by running every component against the real models and checking each against a brute-force reference. The audit found errors at every level. The corrected pipeline now reads the text as written, and it defines word probability correctly for sub-word language models. It scores the entire 143,248-word pronunciation dictionary at every position, with a proven error bound. It also handles German-specific spelling, syllable and compound structure.</p>
+        <p>The language model was chosen by its fit to German eye-tracking data (PoTeC). For the same model, the corrections alone raised the held-out fit of surprisal to human reading times 2.7–3.6-fold. The selected model (GerPT2) fits reading times about twice as well as the originally used one. The corrected pipeline reproduces the expected direction in 13 of 13 behavioural checks, including semantic incongruity, cloze predictability and word-class violations.</p>
+      </div>
+      <div class="keyrow" role="list">
+        <div role="listitem"><b>2.7–3.6×</b><span>better reading-time fit from the corrections alone (same model)</span></div>
+        <div role="listitem"><b>143,248</b><span>dictionary words scored per position (was 10,000)</span></div>
+        <div role="listitem"><b>≈9 s</b><span>per word, full vocabulary, Apple M4 (was 124 s at 10k words)</span></div>
+        <div role="listitem"><b>13 / 13</b><span>behavioural checks in the expected direction</span></div>
+      </div>
+    </section>
+
+    <section id="pipeline" aria-labelledby="h-pipeline">
+      <h2 id="h-pipeline"><span class="n">2</span>Pipeline and data</h2>
+      <p>For every unit of the text (a word, or a punctuation mark), the pipeline returns probability, surprisal and entropy at each level. Phoneme- and syllable-level values are also returned as one row per phoneme or syllable, for use as mTRF regressors once onset times come from forced alignment.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Level</th><th>What is predicted</th><th>Resource</th></tr></thead>
+        <tbody>
+          <tr><td>Lexical</td><td>the next word, given all preceding text</td><td>GerPT2 (<code>benjamin/gerpt2</code>); GerPT2-large as comparison columns</td></tr>
+          <tr><td>Syntactic</td><td>the part of speech of the next word</td><td>spaCy <code>de_core_news_lg</code> 3.8 (Universal Dependencies tags)</td></tr>
+          <tr><td>Semantic</td><td>the meaning vector of the next word</td><td>fastText <code>cc.de.300</code> (cased, subword-aware)</td></tr>
+          <tr><td>Phonemic</td><td>the next phoneme within the word</td><td>MFA <code>german_mfa</code> dictionary (IPA) + MFA G2P for unlisted words</td></tr>
+          <tr><td>Syllabic <span class="unit">(extension)</span></td><td>the next syllable within the word</td><td>same dictionary, syllabified as in §3.7</td></tr>
+          <tr><td>Frequency</td><td>unigram probability; single-level cohort prior</td><td>SUBTLEX-DE (film subtitles, 25.0 M tokens, 190,500 types)</td></tr>
+        </tbody>
+      </table></div>
+      <h3>Stimulus text</h3>
+      <p>Story part 1 was extracted from the provided PDF (2 pages, 481 whitespace tokens, 552 units including punctuation). The PDF's font encoded every lowercase <i>a</i> as the IPA letter <span class="ipa">ɑ</span> (U+0251), 149 occurrences. These were mapped back to <i>a</i>. The PDF's line wrapping, which falls mid-sentence, was joined into running text. No other characters were altered. The text contains words that appear to be deliberate semantic violations (<i>zu einer dieser <b>Unkraut</b></i>; <i>litt unter <b>Zeitung</b></i>; <i>vereinbarte einen <b>Anstrichs</b></i>). They were left untouched.</p>
+    </section>
+
+    <section id="methods" aria-labelledby="h-methods">
+      <h2 id="h-methods"><span class="n">3</span>Predictor methods</h2>
+      <p>This section describes the pipeline as it now stands, in the form a methods section would need. Section 4 lists what was wrong before.</p>
+
+      <h3 id="m-text">3.1 Text units and spelling</h3>
+      <p>Units are maximal letter runs and single punctuation marks (<code>[^\W\d_]+|[.,!?;:]</code>). Digits, quotes and dashes remain in the text the language model reads, but receive no row. Whitespace is normalised (runs of spaces collapsed; at most one blank line).</p>
+      <p><b>Spelling seen by the models.</b> The stimulus uses Swiss orthography (<i>ss</i> for <i>ß</i>). For each word containing <i>ss</i>, the <i>ß</i> variant is substituted when it is at least 5 times more frequent in SUBTLEX-DE and attested at least 3 times. This rule converts <i>Äusserst, regelmässig, sass, geniessen, ausserdem</i> and keeps <i>dass, Masse, Fitnessstudio</i>. The number of units never changes. The output column <code>word</code> keeps the original spelling (it is what a forced-alignment TextGrid is matched against); <code>word_model</code> shows what the models read.</p>
+      <p><b>Dictionary spelling.</b> The pronunciation dictionary contains no <i>ß</i>; every <i>ß</i> is written <i>ss</i>. Each lexical item is therefore keyed by its dictionary spelling (lowercase, <i>ß</i> → <i>ss</i>). Lookups, G2P and cohort membership all use this key.</p>
+
+      <h3 id="m-lexical">3.2 Lexical predictions</h3>
+      <p><b>Input.</b> GerPT2 reads the text exactly as written: punctuation attached, digits and quotes kept. It is preceded by a document-start seed: the tokenizer's BOS token if the model can embed it, otherwise a newline (GerPT2 embeds its BOS token, <code>&lt;|endoftext|&gt;</code>; the older dbmdz model gets the newline). Model tokens are assigned to units by character offsets. When a text exceeds the 1,024-token window, the context is rebuilt at a sentence start, preceded by the seed, keeping ≈800 tokens. This follows Heilbron et al.'s rule of ≥700 tokens of overlap and no mid-sentence starts.</p>
+      <p><b>Word probability.</b> GPT-2's tokens carry the space before a word, so the product of a word's token probabilities is the probability that the next word <em>begins</em> with that string. It is converted into the probability of the word itself (Pimentel &amp; Meister, 2024), where <var>B</var> is the set of tokens that start a new unit (space-, newline- or punctuation-initial):</p>
+      <div class="eq"><span class="lbl">(1)</span><var>P</var>(<var>w</var> | <var>c</var>) = <var>P</var>(<var>t</var><sub>1</sub>…<var>t</var><sub><var>n</var></sub> | <var>c</var>) · <var>P</var>(<var>B</var> | <var>c</var>, <var>t</var><sub>1</sub>…<var>t</var><sub><var>n</var></sub>) ⁄ <var>P</var>(<var>B</var> | <var>c</var>)</div>
+      <p>The denominator applies only when a word ends immediately before the unit. For a space-led word, the choice between a space and a line break is formatting that a listener never hears. It is conditioned away by multiplying by [<var>P</var>(space) + <var>P</var>(newline)] ⁄ <var>P</var>(space), each being the total mass of tokens beginning with that character.</p>
+      <p><b>Spoken-word probability.</b> An additional column, <code>lexical_surprisal_spoken</code>, sums every spelling of the word a listener cannot distinguish: its casings, and, for German numerals, the digit string (<i>hundert</i> ≡ <i>100</i>; parser for cardinals below 10,000, articles excluded).</p>
+      <div class="eq"><span class="lbl">(2)</span><var>P</var><sub>spoken</sub>(<var>w</var> | <var>c</var>) = Σ<sub><var>v</var> ∈ <var>V</var>(<var>w</var>)</sub> <var>P</var>(<var>v</var> | <var>c</var>) &nbsp;&nbsp; surprisal = −log₂ <var>P</var><sub>spoken</sub></div>
+      <p>The main column, <code>lexical_surprisal</code>, is the exact written form, as in the paper. The uncorrected token product is reported as <code>lexical_surprisal_raw</code>.</p>
+      <p><b>Entropy.</b> Three measures are reported:</p>
+      <ul>
+        <li><code>lexical_entropy</code>: over the next-word distribution restricted to word-initial tokens and truncated to the nucleus. The nucleus is the smallest set reaching cumulative probability 0.9, with at least 40 items, as specified in the paper's SI A.3.</li>
+        <li><code>entropy_full</code>: over the untruncated next-token distribution.</li>
+        <li><code>entropy_words</code>: over the full scored vocabulary (§3.3), with casings merged.</li>
+      </ul>
+
+      <h3 id="m-vocab">3.3 The candidate distribution</h3>
+      <p>At every position, the probability of every candidate word is computed with Eq. 1. The candidate forms are:</p>
+      <ul>
+        <li>all 143,248 dictionary words in lowercase and capitalised form;</li>
+        <li>the standard-spelling (<i>ß</i>) form of the 751 dictionary words where that spelling is standard;</li>
+        <li>the text's own spellings, digit spellings of numerals, and the six punctuation marks.</li>
+      </ul>
+      <p>That is ≈288,000 forms. All forms of an item are summed into the item's probability. This distribution feeds the syntactic, semantic, phonemic and syllabic levels.</p>
+      <p>Scoring this exactly at every position was made tractable in three ways:</p>
+      <ol class="plain">
+        <li>The context's key/value cache is computed once per position. Each candidate runs only its own tokens against it, and the cache is broadcast inside attention rather than copied.</li>
+        <li>Candidates are arranged in a token trie: 712,009 tokens collapse to 366,064 shared prefixes.</li>
+        <li>A branch-and-bound search skips subtrees whose total probability is provably negligible. Under Eq. 1, the words below a prefix are disjoint events, so their total probability is at most the prefix probability. A subtree is skipped only while the skipped mass stays below ε = 0.01 of (a) the presented word's own probability, for subtrees containing words that share its first phoneme, or (b) the scored dictionary mass, otherwise. Every cohort probability is therefore within 1% relative error, i.e. under 0.015 bits of surprisal.</li>
+      </ol>
+
+      <h3 id="m-syntax">3.4 Syntactic (POS) predictions</h3>
+      <p>Each candidate form in the nucleus of the candidate distribution (top-p 0.9, at least 40 forms) is inserted after the preceding words of its sentence and tagged by spaCy (<code>.pos_</code>, Universal Dependencies). Following the paper's SI (A.3), candidates are tagged with <em>left context only</em> ("the context plus the predicted word"). The presented word is tagged within its full sentence. The spaCy document is built from the pipeline's own tokens, so the target index is exact, and the parser, NER and lemmatizer are disabled (tags are unchanged). With <var>Q</var> the nucleus forms sharing the presented word's tag and <var>K</var> the nucleus:</p>
+      <div class="eq"><span class="lbl">(3)</span>POS surprisal = −log₂ [ Σ<sub><var>q</var> ∈ <var>Q</var></sub> <var>P</var>(<var>q</var> | <var>c</var>) ⁄ Σ<sub><var>k</var> ∈ <var>K</var></sub> <var>P</var>(<var>k</var> | <var>c</var>) ]</div>
+      <p>Punctuation rows receive lexical values only, since they have no acoustic onset (<code>--score-punctuation</code> adds the rest).</p>
+
+      <h3 id="m-semantic">3.5 Semantic predictions</h3>
+      <p>The predicted meaning is the probability-weighted mean fastText vector of the word forms in the nucleus, renormalised. The prediction error is the cosine distance between that mean and the presented word's vector. It is computed for content words (NOUN, VERB, ADJ, ADV, PROPN). Vectors are looked up in the written casing first; German vectors are case-specific. They come from the <code>cc.de.300</code> model, cached for the needed forms. Semantic distance, the integration-difficulty control, follows Broderick et al. (2018): 1 − Pearson <var>r</var> between the word's vector and the mean vector of the preceding words in the same sentence (the previous sentence for a sentence-initial word), with punctuation excluded.</p>
+
+      <h3 id="m-phon">3.6 Phonemic predictions</h3>
+      <p>Pronunciations come from MFA's <code>german_mfa</code> dictionary. Unlisted words are transcribed by MFA's German G2P model (20 words in story part 1). The dictionary's meta-entry <code>[bracketed]</code> is excluded. The cohort at position <var>i</var> is the set of words consistent with the first <var>i</var> phonemes heard, including words exactly <var>i</var> phonemes long. Those contribute an explicit end-of-word outcome, as in the paper's Eq. 8 and in Brodbeck et al. (2018):</p>
+      <div class="eq"><span class="lbl">(4)</span><var>P</var>(φ<sub><var>i</var></sub> = <var>a</var> | φ<sub>&lt;<var>i</var></sub>) = Σ<sub><var>w</var> ∈ <var>C</var><sub><var>i</var></sub>, <var>w</var><sub><var>i</var></sub> = <var>a</var></sub> <var>p</var>(<var>w</var>) ⁄ Σ<sub><var>w</var> ∈ <var>C</var><sub><var>i</var></sub></sub> <var>p</var>(<var>w</var>)</div>
+      <p>In the <b>hierarchical</b> model, <var>p</var>(<var>w</var>) is the GerPT2 item probability from §3.3 over the whole dictionary. The paper used a nucleus with a flat pseudocount tail, so this is more exact. In the <b>single-level</b> model, <var>p</var>(<var>w</var>) is the SUBTLEX-DE count + 1 of every dictionary word. Surprisal and entropy are reported per phoneme.</p>
+
+      <h3 id="m-syll">3.7 Syllabic predictions <span class="unit">(extension)</span></h3>
+      <p>Syllables are built from the same pronunciations, then fed to the same cohort computation (Eq. 4 over syllables). The syllabification rules are:</p>
+      <ul>
+        <li><b>Nuclei.</b> Nuclei are vowels, diphthongs and syllabic consonants (<span class="ipa">n̩ l̩ m̩</span>). The r-glide <span class="ipa">ɐ</span> after a monophthong belongs to that vowel (<span class="ipa">veːɐ.dən</span>), but after a diphthong it is its own nucleus (<span class="ipa">fɔʏ.ɐ</span>).</li>
+        <li><b>Onsets.</b> Consonants between nuclei go to the following syllable as far as they form a <em>legal onset</em>. A legal onset is a cluster attested word-initially in at least 10 dictionary entries (53 clusters). Legality is judged on phonemes, not allophones: <span class="ipa">tʰ = t</span>, <span class="ipa">c = k</span>, <span class="ipa">ɟ = ɡ</span>, and vocalised <span class="ipa">ɐ</span> = <span class="ipa">ʁ</span> in matching. Loanword-only onsets (/s/ + consonant, /ps/, /ks/) are excluded word-internally. Examples: <span class="ipa">ɡaʁ.tʰn̩</span>, <span class="ipa">hʊn.dɐt</span>, <span class="ipa">fɛns.tɐ</span>, <span class="ipa">mʊs.kəl</span>.</li>
+        <li><b>Compound and prefix boundaries.</b> These are hard syllable edges, because German does not resyllabify across them (<span class="ipa">ʃtʁoːm.an.ʃlʊs</span>, <span class="ipa">ʃtand.ɔʁt</span>). A word is split into dictionary words, optionally with a linking element, when two conditions hold. First, the parts' geometric-mean SUBTLEX frequency exceeds the word's (Koehn &amp; Knight, 2003). Second, the second part's pronunciation matches the end of the word's pronunciation, and any linking element is actually pronounced (a linking <i>s</i> must be [s]). Splitting recurses, and numerals split around <i>und</i>. 56,223 dictionary words were split.</li>
+      </ul>
+
+      <h3 id="m-freq">3.8 Frequency</h3>
+      <p>Unigram surprisal = −log₂ [(count + 1) ⁄ (<var>N</var> + <var>V</var>)], using SUBTLEX-DE counts summed over casings under the standard spelling. <var>N</var> = 25.0 M tokens and <var>V</var> = 190,500 types. The flag <code>in_subtlex</code> marks words the corpus never contains (these receive ≈24.6 bits).</p>
+    </section>
+
+    <section id="audit" aria-labelledby="h-audit">
+      <h2 id="h-audit"><span class="n">4</span>Errors found in the original pipeline</h2>
+      <p>Each error was found by running the component against the real model or resource. Evidence is from <code>story.txt</code> (the first sentences of the stimulus) unless stated otherwise.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Level</th><th>Error</th><th>Evidence</th><th>Correction</th></tr></thead>
+        <tbody>
+          <tr><td>Lexical</td><td>Model input was the words re-joined with spaces: <i>überraschend . Marlene</i></td><td>" ." cost 11.0 bits vs 1.3 for "."; +23 bits over two sentences</td><td>Text read as written; offset-based token mapping</td></tr>
+          <tr><td>Lexical</td><td>Text seeded with a lone space</td><td><i>Die</i> = 15.5 bits (now 3.7)</td><td>Document-start seed (BOS/newline)</td></tr>
+          <tr><td>Lexical</td><td>Token product used as word probability</td><td>After <i>Marlene sollte in den</i>, the fragment <i>Vor</i> (8.7 bits) outranked the actual <i>Vorruhestand</i> (10.4)</td><td>Eq. 1; raw value kept</td></tr>
+          <tr><td>Lexical</td><td>Formatting charged to words</td><td><i>Marlene</i> = 26.0 bits: the model expected a paragraph break (99%)</td><td>Space/newline conditioning</td></tr>
+          <tr><td>Lexical</td><td>Umlaut tokens misclassified; candidate keys garbled (<i>Ã¼ber</i>)</td><td>Inspection of token classes</td><td>Byte-level token classes; decoded keys</td></tr>
+          <tr><td>Cohort</td><td>Words ending at the current prefix dropped from the denominator</td><td><i>Tisch</i> absent from the cohort inside <i>Tischler</i></td><td>End-of-word outcome (Eq. 4)</td></tr>
+          <tr><td>Cohort</td><td>Only 10,000 words; context recomputed per candidate</td><td>74 min for 36 words</td><td>§3.3: full dictionary, ≈9 s/word</td></tr>
+          <tr><td>Cohort</td><td>Dictionary uses <i>ss</i> for <i>ß</i>; ß-words scored in a spelling the model rarely saw</td><td>751 words incl. <i>weiß</i> (57k in SUBTLEX), <i>groß</i>, <i>Straße</i></td><td>Dictionary-spelling keys; both spellings summed</td></tr>
+          <tr><td>Syllabic</td><td>Wrong syllable count in the output (vowel inventory mismatch)</td><td>Every word had exactly 1 syllable; <code>syll_entropy_freq</code> constant 10.739</td><td>Inventory from the dictionary</td></tr>
+          <tr><td>Syllabic</td><td>r-glide assigned to the next syllable; diphthong + <span class="ipa">ɐ</span> merged; no onset constraints</td><td><span class="ipa">veː.ɐdən</span>, <i>Feuer</i> = 1 syllable, <span class="ipa">ɡa.ʁtʰn̩</span></td><td>§3.7</td></tr>
+          <tr><td>Phonemic</td><td>G2P never ran (MFA not on the path)</td><td><i>Versicherungsagentur</i> had no pronunciation</td><td>MFA located in its own environment</td></tr>
+          <tr><td>Semantic</td><td>Vectors looked up in lowercase</td><td>No vector for <i>vorruhestand</i>, <i>versicherungsagentur</i>; cos(<i>Nachricht</i>, <i>nachricht</i>) = 0.77</td><td>Written casing first</td></tr>
+          <tr><td>Semantic</td><td>Punctuation averaged into the semantic-distance context</td><td>Inspection</td><td>Excluded</td></tr>
+          <tr><td>Syntactic</td><td>Lowercased candidates; presented word counted twice; tagger saw the rest of the sentence</td><td><i>nachricht</i> + <i>Nachricht</i> both in the distribution</td><td>§3.4</td></tr>
+          <tr><td>Frequency</td><td>Mixed-register frequencies (wordfreq); Swiss spellings absent</td><td><i>äusserst</i>: 0 counts vs 583 for <i>äußerst</i></td><td>SUBTLEX-DE; §3.1</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="validation" aria-labelledby="h-validation">
+      <h2 id="h-validation"><span class="n">5</span>Validation</h2>
+
+      <h3>5.1 Implementation against brute-force references</h3>
+      <ul>
+        <li>The shared-cache attention matched the standard Hugging Face forward pass to within 2 × 10⁻⁴ nats. So did incremental caching and the batched candidate scorer.</li>
+        <li>The single-pass text scorer agreed with an independent per-word scorer on every unit (≤ 10⁻⁴ nats).</li>
+        <li>Pruned scoring vs exact scoring over a 20,000-word vocabulary: maximum difference 0.0099 bits in phoneme surprisal and 0.023 bits in entropy across tested positions.</li>
+        <li>Test suites (<code>tests/run_all.py</code>): three offline suites and one real-model suite. All pass. A refactor of the code was checked against a reference run: identical output to within 10⁻¹⁵.</li>
+      </ul>
+
+      <h3>5.2 Language-model selection on human reading data</h3>
+      <p><b>Data.</b> The Potsdam Textbook Corpus (PoTeC; Jakobi et al., 2025): 75 native German readers, 12 texts, eye-tracking. Per word, first-pass reading time (FPRT) and total fixation time (TFT) were log-transformed and averaged over readers, using fixated words only. Words at screen-line edges, and words with digits, symbols, abbreviations or hyphens, were excluded. The same 933 words entered every model.</p>
+      <p><b>Measure.</b> Ordinary least squares on the word means. The baseline contains word length and SUBTLEX-DE Zipf frequency of the current and previous word. The full model adds surprisal of the current and previous word. ΔLL is the held-out log-likelihood gain per word, over 10 repetitions of 10-fold cross-validation, in milli-nats per word. Perplexity is bits per word on the story.</p>
+      <figure>
+        <div class="chart-wrap">
+          <svg class="chart" viewBox="0 0 640 360" role="img" aria-labelledby="chart-t chart-d">
+            <title id="chart-t">Perplexity versus fit to reading times</title>
+            <desc id="chart-d">Scatter of five German GPT-2 models plus the original pipeline. GerPT2 has the highest reading-time fit (111.6) at 6.17 bits per word; the XL model has the lowest perplexity (4.99) but a fit of only 54.1; the original pipeline is lowest at 18.9.</desc>
+            <line class="grid" x1="56" y1="241" x2="616" y2="241"/>
+            <line class="grid" x1="56" y1="169.9" x2="616" y2="169.9"/>
+            <line class="grid" x1="56" y1="98.9" x2="616" y2="98.9"/>
+            <line class="grid" x1="56" y1="27.8" x2="616" y2="27.8"/>
+            <line class="axis" x1="56" y1="312" x2="616" y2="312"/>
+            <line class="axis" x1="56" y1="16" x2="56" y2="312"/>
+            <text class="tick" x="48" y="316" text-anchor="end">0</text>
+            <text class="tick" x="48" y="245" text-anchor="end">30</text>
+            <text class="tick" x="48" y="174" text-anchor="end">60</text>
+            <text class="tick" x="48" y="103" text-anchor="end">90</text>
+            <text class="tick" x="48" y="32" text-anchor="end">120</text>
+            <text class="tick" x="118.2" y="330" text-anchor="middle">5</text>
+            <text class="tick" x="242.7" y="330" text-anchor="middle">6</text>
+            <text class="tick" x="367.1" y="330" text-anchor="middle">7</text>
+            <text class="tick" x="491.6" y="330" text-anchor="middle">8</text>
+            <text class="tick" x="616" y="330" text-anchor="middle">9</text>
+            <text class="axlab" x="336" y="352" text-anchor="middle">Perplexity on the story, bits per word (lower = better)</text>
+            <text class="axlab" transform="translate(16 164) rotate(-90)" text-anchor="middle">ΔLL, first-pass time (higher = better)</text>
+            <!-- same model, before and after the corrections -->
+            <line class="arrow" x1="488" y1="259" x2="442" y2="199"/>
+            <polygon class="arrowhead" points="438,193 447,197 440,203"/>
+            <circle class="pt old" cx="491.6" cy="267.2" r="6"/>
+            <text class="lab" x="480" y="286" text-anchor="end">dbmdz, original pipeline</text>
+            <text class="lab sub" x="480" y="300" text-anchor="end">18.9</text>
+            <circle class="pt" cx="438" cy="189.8" r="6"/>
+            <text class="lab" x="428" y="214" text-anchor="end">dbmdz, corrected</text>
+            <text class="lab sub" x="428" y="228" text-anchor="end">51.6</text>
+            <circle class="pt" cx="561.2" cy="166.6" r="6"/>
+            <text class="lab" x="555" y="150" text-anchor="end">stefan-it larger</text>
+            <text class="lab sub" x="571" y="150">61.4</text>
+            <circle class="pt best" cx="263.8" cy="47.7" r="7"/>
+            <text class="lab" x="276" y="44">GerPT2 (selected)</text>
+            <text class="lab sub" x="276" y="58">111.6</text>
+            <circle class="pt" cx="138.1" cy="92.5" r="6"/>
+            <text class="lab" x="150" y="96">GerPT2-large</text>
+            <text class="lab sub" x="150" y="110">92.7</text>
+            <circle class="pt" cx="117" cy="183.9" r="6"/>
+            <text class="lab" x="129" y="188">GPT-2 XL (WECHSEL)</text>
+            <text class="lab sub" x="129" y="202">54.1</text>
+          </svg>
+        </div>
+        <figcaption>Figure 1. Lower perplexity does not imply a better fit to human reading. The dashed arrow is the same model before and after the corrections in §4. Values are ΔLL for first-pass time in milli-nats per word; total-time values are in Table 1.</figcaption>
+      </figure>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Model / pipeline</th><th class="num">Bits per word ↓</th><th class="num">ΔLL FPRT ↑</th><th class="num">ΔLL TFT ↑</th><th class="num">r (surprisal, TFT)</th></tr></thead>
+        <tbody>
+          <tr class="old"><td>dbmdz/german-gpt2, original pipeline</td><td class="num">8.00</td><td class="num">18.9</td><td class="num">22.0</td><td class="num">0.56</td></tr>
+          <tr><td>dbmdz/german-gpt2, corrected</td><td class="num">7.57</td><td class="num">51.6</td><td class="num">79.2</td><td class="num">0.65</td></tr>
+          <tr><td>stefan-it/german-gpt2-larger</td><td class="num">8.56</td><td class="num">61.4</td><td class="num">96.7</td><td class="num">0.61</td></tr>
+          <tr class="best"><td><b>benjamin/gerpt2 (selected)</b></td><td class="num">6.17</td><td class="num"><b>111.6</b></td><td class="num"><b>124.1</b></td><td class="num">0.72</td></tr>
+          <tr><td>benjamin/gerpt2-large (comparison columns)</td><td class="num">5.16</td><td class="num">92.7</td><td class="num">119.0</td><td class="num">0.69</td></tr>
+          <tr><td>malteos/gpt2-xl-wechsel-german</td><td class="num"><b>4.99</b></td><td class="num">54.1</td><td class="num">87.6</td><td class="num">0.62</td></tr>
+        </tbody>
+      </table></div>
+      <p class="caption">Table 1. Fold standard errors are 2–7 milli-nats. Switching the end-of-word correction off changes ΔLL by less than 2.5 (slightly higher without it) for every model except stefan-it, where the correction adds +9 (FPRT) and +18 (TFT). The correction's main effect is on the cohort, not on the word-level fit.</p>
+      <p>GerPT2 was selected: it has the best fit to human reading times and runs at ≈9 s per word with the full vocabulary. The largest model had the lowest perplexity but a weaker fit, consistent with Oh &amp; Schuler (2023). Its runtime (≈50 s per word for GerPT2-large; more for XL) also argued against the larger models. GerPT2-large surprisal and entropy are included as comparison columns, so the choice can be checked against the EEG data themselves.</p>
+
+      <h3>5.3 Behavioural minimal pairs</h3>
+      <p>Each sentence pair differs in one critical word, with a known expected direction. Full pipeline, GerPT2, full dictionary.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Contrast</th><th>Critical word (expected / violation)</th><th class="num">Lexical</th><th class="num">POS</th><th class="num">Semantic PE</th><th class="num">1st phoneme (hier.)</th></tr></thead>
+        <tbody>
+          <tr><td>Congruity</td><td>Kaffee mit Milch und <b>Zucker</b> / <b>Socken</b></td><td class="num">3.7 / 17.2</td><td class="num">1.4 / 1.4</td><td class="num">0.43 / 0.67</td><td class="num">3.4 / 3.6</td></tr>
+          <tr><td>Congruity</td><td>backt … frisches <b>Brot</b> / <b>Metall</b></td><td class="num">0.4 / 22.0</td><td class="num">0.0 / 0.0</td><td class="num">0.00 / 0.70</td><td class="num">0.3 / 7.6</td></tr>
+          <tr><td>Cloze</td><td>putzt er sich die <b>Zähne</b> / <b>Schuhe</b></td><td class="num">1.0 / 6.9</td><td class="num">0.0 / 0.0</td><td class="num">0.05 / 0.56</td><td class="num">0.9 / 5.7</td></tr>
+          <tr><td>Word class</td><td>kauft einen <b>roten</b> / <b>oder</b> Mantel</td><td class="num">8.9 / 13.3</td><td class="num">2.5 / 8.8</td><td class="num">—</td><td class="num">4.8 / 7.0</td></tr>
+          <tr><td>Word class</td><td>kauft einen <b>roten</b> / <b>laufen</b> Mantel</td><td class="num">8.9 / 19.9</td><td class="num">2.5 / 2.5</td><td class="num">0.46 / 0.66</td><td class="num">4.8 / 5.4</td></tr>
+        </tbody>
+      </table></div>
+      <p class="caption">Table 2. Surprisal in bits. The frequency-only (single-level) first-phoneme surprisal barely differs within pairs (5.5/3.9, 4.8/4.0, 5.5/5.3); only the context-weighted cohort does, as expected. 13 of 13 directional checks pass.</p>
+    </section>
+
+    <section id="limits" aria-labelledby="h-limits">
+      <h2 id="h-limits"><span class="n">6</span>Limitations and open items</h2>
+      <ul>
+        <li><b>Tagger repair.</b> POS surprisal cannot detect an open-class category violation when the tagger re-tags the odd word to fit its slot: spaCy tags <i>einen <b>laufen</b> Mantel</i> as ADJ. Closed-class violations are detected. This is inherent to tagger-based POS surprisal, the paper's method.</li>
+        <li><b>Model choice rests on reading, not listening.</b> PoTeC is expository text read silently. The choice should be confirmed on the study's own EEG/ocular data using the comparison columns.</li>
+        <li><b>Heuristic components.</b> Compound splitting and the Swiss-spelling rule are frequency-based heuristics. Syllabification is not morphology-aware beyond compounds and prefixes. 20 story words rely on G2P transcriptions. The dictionary has occasional idiosyncrasies (e.g. <i>sass</i> with a short vowel).</li>
+        <li><b>Deviations from the paper</b>, each switchable: end-of-word correction (<code>--no-eow-correction</code>), full-vocabulary cohort prior, and the syllabic level itself, which is an extension.</li>
+        <li><b>Stimulus text.</b> A few spellings may be transcription artifacts (<i>sechs und fünfzig</i>, <i>Bio gemüse</i>, lowercase <i>quadratmeter</i>). The text, the audio and the forced-alignment transcript should agree before alignment.</li>
+      </ul>
+      <div class="note">
+        <p><b>Not yet produced:</b> the final predictor tables for story part 1. The full run was stopped at the last step (552 of 552 units scored, comparison columns pending) at the user's request. Expected runtime is ≈1 hour on the M4, or ≈15 minutes with <code>--vocab-size 20000</code>.</p>
+      </div>
+    </section>
+
+    <section id="repro" aria-labelledby="h-repro">
+      <h2 id="h-repro"><span class="n">7</span>Reproducibility</h2>
+      <p><b>Environment.</b> Apple M4, 16 GB RAM, PyTorch 2.13 (MPS), transformers 4.28.1, spaCy 3.8.15 with <code>de_core_news_lg</code> 3.8.0, MFA <code>german_mfa</code> dictionary and G2P (MFA in its own conda environment, located automatically), fastText <code>cc.de.300.bin</code>, SUBTLEX-DE (OSF py9ba, CC BY-NC-SA 4.0), PoTeC reading measures (OSF). Run from the <code>nlp_env</code> conda environment.</p>
+      <p><b>Version history.</b> The project is under git. The first commit (<code>0483757</code>) is the original pipeline. Later commits carry each group of changes (<code>f5e10ae</code> audit fixes; <code>4f24a18</code> model choice, SI alignment, SUBTLEX, spelling, compounds; <code>a2a13b0</code> dictionary spelling; followed by a clean-up that removed the superseded code paths without changing any output). <code>git diff 0483757</code> shows everything changed.</p>
+      <p><b>Commands.</b></p>
+      <pre>python run_story.py --text-file stimuli/story_part1.txt --mfa-dict ~/Documents/MFA/pretrained_models/dictionary/german_mfa.dict --device mps --out results --progress
+python scripts/validate_model.py --mfa-dict …/german_mfa.dict --device mps   # §5.3
+python scripts/benchmark_models.py --device mps                             # §5.2
+python scripts/audit_results.py results/
+python tests/run_all.py                                                      # §5.1</pre>
+      <p><b>Main output columns</b> (<code>words.csv</code>; bits unless noted):</p>
+      <dl class="cols">
+        <dt>lexical_surprisal</dt><dd>word surprisal as written, end-of-word corrected (Eq. 1)</dd>
+        <dt>lexical_surprisal_spoken</dt><dd>summed over spellings a listener cannot tell apart</dd>
+        <dt>lexical_surprisal_raw</dt><dd>uncorrected token product (paper's definition)</dd>
+        <dt>lexical_entropy</dt><dd>nucleus next-word entropy</dd>
+        <dt>entropy_full / entropy_words</dt><dd>full next-token / full-vocabulary word entropy</dd>
+        <dt>unigram_surprisal, in_subtlex</dt><dd>SUBTLEX-DE, Laplace-smoothed</dd>
+        <dt>pos, pos_surprisal, pos_entropy</dt><dd>§3.4</dd>
+        <dt>semantic_prediction_error</dt><dd>cosine distance, content words (§3.5)</dd>
+        <dt>semantic_distance</dt><dd>Broderick control (§3.5)</dd>
+        <dt>phon_* / syll_* (hier, freq)</dt><dd>per-phoneme / per-syllable lists; also in <code>phonemes.csv</code>, <code>syllables.csv</code></dd>
+        <dt>*__gerpt2-large</dt><dd>comparison model, lexical columns</dd>
+        <dt>word, word_model</dt><dd>original spelling / spelling read by the models</dd>
+        <dt>dict_mass, pruned_mass</dt><dd>scored dictionary mass; mass skipped by the bound</dd>
+      </dl>
+    </section>
+
+    <section id="refs" aria-labelledby="h-refs">
+      <h2 id="h-refs"><span class="n">8</span>References</h2>
+      <ol class="refs">
+        <li>Broderick, M. P., Anderson, A. J., Di Liberto, G. M., Crosse, M. J., &amp; Lalor, E. C. (2018). Electrophysiological correlates of semantic dissimilarity reflect the comprehension of natural, narrative speech. <i>Current Biology, 28</i>(5), 803–809.</li>
+        <li>Brodbeck, C., Hong, L. E., &amp; Simon, J. Z. (2018). Rapid transformation from auditory to linguistic representations of continuous speech. <i>Current Biology, 28</i>(24), 3976–3983.</li>
+        <li>Brysbaert, M., Buchmeier, M., Conrad, M., Jacobs, A. M., Bölte, J., &amp; Böhl, A. (2011). The word frequency effect: A review of recent developments and implications for the choice of frequency estimates in German. <i>Experimental Psychology, 58</i>(5), 412–424.</li>
+        <li>Gaston, P., &amp; Marantz, A. (2018). The time course of contextual cohort effects in auditory processing of category-ambiguous words. <i>Language, Cognition and Neuroscience, 33</i>(4), 402–423.</li>
+        <li>Grave, E., Bojanowski, P., Gupta, P., Joulin, A., &amp; Mikolov, T. (2018). Learning word vectors for 157 languages. <i>Proceedings of LREC 2018</i>.</li>
+        <li>Heilbron, M., Armeni, K., Schoffelen, J.-M., Hagoort, P., &amp; de Lange, F. P. (2022). A hierarchy of linguistic predictions during natural language comprehension. <i>PNAS, 119</i>(32), e2201968119 (and SI Appendix).</li>
+        <li>Jakobi, D. N., Kern, T., Reich, D. R., Haller, P., &amp; Jäger, L. A. (2025). PoTeC: A German naturalistic eye-tracking-while-reading corpus. <i>Behavior Research Methods</i>.</li>
+        <li>Koehn, P., &amp; Knight, K. (2003). Empirical methods for compound splitting. <i>Proceedings of EACL 2003</i>.</li>
+        <li>McAuliffe, M., Socolof, M., Mihuc, S., Wagner, M., &amp; Sonderegger, M. (2017). Montreal Forced Aligner: Trainable text-speech alignment using Kaldi. <i>Proceedings of Interspeech 2017</i>.</li>
+        <li>Oh, B.-D., &amp; Schuler, W. (2023). Why does surprisal from larger Transformer-based language models provide a poorer fit to human reading times? <i>TACL, 11</i>, 336–350.</li>
+        <li>Oh, B.-D., &amp; Schuler, W. (2024). Leading whitespaces of language models' subword vocabulary pose a confound for calculating word probabilities. <i>Proceedings of EMNLP 2024</i>.</li>
+        <li>Pimentel, T., &amp; Meister, C. (2024). How to compute the probability of a word. <i>Proceedings of EMNLP 2024</i>.</li>
+        <li>Wilcox, E. G., Gauthier, J., Hu, J., Qian, P., &amp; Levy, R. (2020). On the predictive power of neural language models for human real-time comprehension behavior. <i>Proceedings of CogSci 2020</i>.</li>
+      </ol>
+      <p class="caption">Models: GerPT2 and GerPT2-large (B. Minixhofer, Hugging Face <code>benjamin/gerpt2</code>, <code>benjamin/gerpt2-large</code>); German GPT-2 (dbmdz); GPT-2 XL WECHSEL German (M. Ostendorff). Please verify reference details against the originals before citing.</p>
+    </section>
+
+    <footer>Report on the <code>linguistic_predictors</code> repository (<code>~/linguistic_predictors</code>). Numbers are from the runs described in §5; the repository README explains how to run everything.</footer>
+  </main>
+</div>
